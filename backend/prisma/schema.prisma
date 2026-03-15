@@ -1,0 +1,76 @@
+﻿generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TransactionStatus {
+  COMPLETED
+  UNDER_REVIEW
+  REJECTED
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  fullName     String
+  role         UserRole      @default(USER)
+  createdAt    DateTime      @default(now())
+  account      Account?
+  devices      UserDevice[]
+  sent         Transaction[] @relation("sentTransactions")
+  received     Transaction[] @relation("receivedTransactions")
+}
+
+model Account {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  accountNumber String   @unique
+  balance       Decimal  @default(0)
+  accountType   String
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model Transaction {
+  id              String             @id @default(uuid())
+  senderAccountId String
+  receiverAccountId String
+  senderId        String
+  receiverId      String
+  amount          Decimal
+  timestamp       DateTime           @default(now())
+  status          TransactionStatus  @default(COMPLETED)
+  fraudFlag       Boolean            @default(false)
+  fraudScore      Int                @default(0)
+  reason          String?
+
+  senderAccount   Account            @relation("senderAccount", fields: [senderAccountId], references: [id])
+  receiverAccount Account            @relation("receiverAccount", fields: [receiverAccountId], references: [id])
+  sender          User               @relation("sentTransactions", fields: [senderId], references: [id])
+  receiver        User               @relation("receivedTransactions", fields: [receiverId], references: [id])
+
+  @@index([senderAccountId, timestamp])
+  @@index([receiverAccountId, timestamp])
+  @@index([fraudFlag, status])
+}
+
+model UserDevice {
+  id        String   @id @default(uuid())
+  userId    String
+  ip        String
+  firstSeen DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, ip])
+}
