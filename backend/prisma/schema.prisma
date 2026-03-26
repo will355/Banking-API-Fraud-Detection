@@ -1,4 +1,4 @@
-﻿generator client {
+generator client {
   provider = "prisma-client-js"
 }
 
@@ -39,6 +39,8 @@ model Account {
   accountType   String
   createdAt     DateTime @default(now())
   user          User     @relation(fields: [userId], references: [id])
+  sentTransactions     Transaction[] @relation("senderAccount")
+  receivedTransactions Transaction[] @relation("receiverAccount")
 }
 
 model Transaction {
